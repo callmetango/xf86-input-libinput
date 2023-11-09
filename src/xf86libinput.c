@@ -5253,32 +5253,33 @@ LibinputSetProperty(DeviceIntPtr dev, Atom atom, XIPropertyValuePtr val,
 		rc = LibinputSetPropertyAreaRatio(dev, atom, val, checkonly);
 	else if (atom == prop_hires_scroll)
 		rc = LibinputSetPropertyHighResolutionScroll(dev, atom, val, checkonly);
-	else if (atom == prop_device || atom == prop_product_id ||
-		 atom == prop_tap_default ||
-		 atom == prop_tap_drag_default ||
-		 atom == prop_tap_drag_lock_default ||
-		 atom == prop_tap_buttonmap_default ||
-		 atom == prop_calibration_default ||
-		 atom == prop_accel_default ||
+	else if (atom == prop_accel_default ||
 		 atom == prop_accel_profile_default ||
-		 atom == prop_natural_scroll_default ||
-		 atom == prop_sendevents_default ||
-		 atom == prop_sendevents_available ||
-		 atom == prop_left_handed_default ||
-		 atom == prop_scroll_method_default ||
-		 atom == prop_scroll_methods_available ||
-		 atom == prop_scroll_button_default ||
-		 atom == prop_scroll_buttonlock_default ||
-		 atom == prop_scroll_pixel_distance_default ||
+		 atom == prop_calibration_default ||
 		 atom == prop_click_method_default ||
 		 atom == prop_click_methods_available ||
-		 atom == prop_middle_emulation_default ||
 		 atom == prop_disable_while_typing_default ||
+		 atom == prop_left_handed_default ||
+		 atom == prop_middle_emulation_default ||
 		 atom == prop_mode_groups_available ||
 		 atom == prop_mode_groups_buttons ||
 		 atom == prop_mode_groups_rings ||
 		 atom == prop_mode_groups_strips ||
-		 atom == prop_rotation_angle_default)
+		 atom == prop_natural_scroll_default ||
+		 atom == prop_product_id ||
+		 atom == prop_rotation_angle_default ||
+		 atom == prop_scroll_button_default ||
+		 atom == prop_scroll_buttonlock_default ||
+		 atom == prop_scroll_method_default ||
+		 atom == prop_scroll_methods_available ||
+		 atom == prop_scroll_pixel_distance_default ||
+		 atom == prop_sendevents_available ||
+		 atom == prop_sendevents_default ||
+		 atom == prop_tap_buttonmap_default ||
+		 atom == prop_tap_default ||
+		 atom == prop_tap_drag_default ||
+		 atom == prop_tap_drag_lock_default ||
+		 atom == prop_device)
 		return BadAccess; /* read-only */
 	else
 		return Success;
