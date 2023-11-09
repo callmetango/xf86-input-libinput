@@ -229,4 +229,19 @@
  * If disabled, high-resolution wheel scroll events are discarded */
 #define LIBINPUT_PROP_HIRES_WHEEL_SCROLL_ENABLED "libinput High Resolution Wheel Scroll Enabled"
 
+/* The tablet tool unique serial number: CARD32, 1 value, constant for the
+ * lifetime of the device.
+ *
+ * If this property exists and is zero, the tool does not have a unique serial
+ * number.
+ */
+#define LIBINPUT_PROP_TABLET_TOOL_SERIAL "libinput Tablet Tool Serial"
+
+/* The tablet tool hardware ID: CARD32, 1 value, constant for the lifetime of the device.
+ *
+ * This property only exists if the device has a known tool ID.
+ * See libinput_tablet_tool_get_tool_id() in the libinput documentation for details.
+ */
+#define LIBINPUT_PROP_TABLET_TOOL_ID "libinput Tablet Tool ID"
+
 #endif /* _LIBINPUT_PROPERTIES_H_ */

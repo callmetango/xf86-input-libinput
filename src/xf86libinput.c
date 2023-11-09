@@ -4100,6 +4100,8 @@ static Atom prop_draglock;
 static Atom prop_horiz_scroll;
 static Atom prop_pressurecurve;
 static Atom prop_area_ratio;
+static Atom prop_serial;
+static Atom prop_tool_id;
 static Atom prop_hires_scroll;
 
 /* general properties */
@@ -5275,10 +5277,12 @@ LibinputSetProperty(DeviceIntPtr dev, Atom atom, XIPropertyValuePtr val,
 		 atom == prop_scroll_pixel_distance_default ||
 		 atom == prop_sendevents_available ||
 		 atom == prop_sendevents_default ||
+		 atom == prop_serial ||
 		 atom == prop_tap_buttonmap_default ||
 		 atom == prop_tap_default ||
 		 atom == prop_tap_drag_default ||
 		 atom == prop_tap_drag_lock_default ||
+		 atom == prop_tool_id ||
 		 atom == prop_device)
 		return BadAccess; /* read-only */
 	else
@@ -6269,6 +6273,36 @@ LibinputInitTabletAreaRatioProperty(DeviceIntPtr dev,
 }
 
 static void
+LibinputInitTabletSerialProperty(DeviceIntPtr dev,
+				 struct xf86libinput *driver_data)
+{
+	struct libinput_tablet_tool *tool = driver_data->tablet_tool;
+	uint32_t serial, tool_id;
+
+	if ((driver_data->capabilities & CAP_TABLET_TOOL) == 0)
+		return;
+
+	if (!tool)
+		return;
+
+	/* Serial prop is always created to indicate when we don't have a serial */
+	serial = libinput_tablet_tool_get_serial(tool);
+	prop_serial = LibinputMakeProperty(dev,
+					  LIBINPUT_PROP_TABLET_TOOL_SERIAL,
+					  XA_CARDINAL, 32,
+					  1, &serial);
+
+	/* The tool ID prop is only created if we have a known tool id */
+	tool_id = libinput_tablet_tool_get_tool_id(tool);
+	if (tool_id) {
+		prop_tool_id = LibinputMakeProperty(dev,
+						    LIBINPUT_PROP_TABLET_TOOL_ID,
+						    XA_CARDINAL, 32,
+						    1, &tool_id);
+	}
+}
+
+static void
 LibinputInitHighResolutionScrollProperty(DeviceIntPtr dev,
 					 struct xf86libinput *driver_data,
 					 struct libinput_device *device)
@@ -6343,5 +6377,6 @@ LibinputInitProperty(DeviceIntPtr dev)
 	LibinputInitScrollPixelDistanceProperty(dev, driver_data, device);
 	LibinputInitPressureCurveProperty(dev, driver_data);
 	LibinputInitTabletAreaRatioProperty(dev, driver_data);
+	LibinputInitTabletSerialProperty(dev, driver_data);
 	LibinputInitHighResolutionScrollProperty(dev, driver_data, device);
 }
