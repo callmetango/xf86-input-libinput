@@ -1320,7 +1320,10 @@ xf86libinput_init_tablet(InputInfoPtr pInfo)
 	int nbuttons = TABLET_NUM_BUTTONS;
 	int naxes = 2;
 
-	BUG_RETURN(driver_data->tablet_tool == NULL);
+	if (driver_data->tablet_tool == NULL) {
+		xf86IDrvMsg(pInfo, X_WARNING, "BUG: tablet_tool is NULL\n");
+		return;
+	}
 
 	tool = driver_data->tablet_tool;
 
@@ -1438,7 +1441,10 @@ xf86libinput_init(DeviceIntPtr dev)
 	struct xf86libinput_device *shared_device = driver_data->shared_device;
 	struct libinput_device *device = shared_device->device;
 
-	BUG_RETURN_VAL(device == NULL, !Success);
+	if (device == NULL) {
+		xf86IDrvMsg(pInfo, X_WARNING, "BUG: xf86libinput_init() device is NULL\n");
+		return !Success;
+	}
 
 	dev->public.on = FALSE;
 
@@ -2410,7 +2416,10 @@ xf86libinput_handle_tablet_proximity(InputInfoPtr pInfo,
 	if (xf86libinput_tool_queue_event(event))
 		return EVENT_QUEUED;
 
-	BUG_RETURN_VAL(pDev == NULL, EVENT_HANDLED);
+	if (pDev == NULL) {
+		xf86IDrvMsg(pInfo, X_WARNING, "BUG: xf86libinput_handle_tablet_proximity() pDev is NULL\n");
+		return EVENT_HANDLED;
+	}
 
 	x = libinput_event_tablet_tool_get_x_transformed(event, TABLET_AXIS_MAX);
 	y = libinput_event_tablet_tool_get_y_transformed(event, TABLET_AXIS_MAX);
@@ -4212,7 +4221,8 @@ xf86libinput_check_device(DeviceIntPtr dev,
 	struct libinput_device *device = driver_data->shared_device->device;
 
 	if (device == NULL) {
-		BUG_WARN(dev->public.on);
+		if (dev->public.on)
+			xf86IDrvMsg(pInfo, X_WARNING, "BUG: xf86libinput_check_device() device is on\n");
 		xf86IDrvMsg(pInfo, X_INFO,
 			    "SetProperty on %u called but device is disabled.\n"
 			    "This driver cannot change properties on a disabled device\n",
