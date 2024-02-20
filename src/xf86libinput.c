@@ -517,7 +517,7 @@ LibinputApplyConfigSendEvents(DeviceIntPtr dev,
 	    libinput_device_config_send_events_set_mode(device,
 							driver_data->options.sendevents) != LIBINPUT_CONFIG_STATUS_SUCCESS)
 		xf86IDrvMsg(pInfo, X_ERROR,
-			    "Failed to set SendEventsMode %u\n",
+			    "Failed to set SendEventsMode %lu\n",
 			    driver_data->options.sendevents);
 }
 
@@ -792,7 +792,7 @@ LibinputApplyConfigScrollMethod(DeviceIntPtr dev,
 		scroll_button = btn_xorg2linux(driver_data->options.scroll_button);
 		if (libinput_device_config_scroll_set_button(device, scroll_button) != LIBINPUT_CONFIG_STATUS_SUCCESS)
 			xf86IDrvMsg(pInfo, X_ERROR,
-				    "Failed to set ScrollButton to %u\n",
+				    "Failed to set ScrollButton to %lu\n",
 				    driver_data->options.scroll_button);
 
 	}
@@ -3245,7 +3245,7 @@ xf86libinput_parse_scrollbutton_option(InputInfoPtr pInfo,
 	if (libinput_device_config_scroll_set_button(device,
 						     b) != LIBINPUT_CONFIG_STATUS_SUCCESS) {
 		xf86IDrvMsg(pInfo, X_ERROR,
-			    "Failed to set ScrollButton to %u\n",
+			    "Failed to set ScrollButton to %lu\n",
 			    scroll_button);
 		scroll_button = btn_linux2xorg(libinput_device_config_scroll_get_button(device));
 	}
@@ -4224,7 +4224,7 @@ xf86libinput_check_device(DeviceIntPtr dev,
 		if (dev->public.on)
 			xf86IDrvMsg(pInfo, X_WARNING, "BUG: xf86libinput_check_device() device is on\n");
 		xf86IDrvMsg(pInfo, X_INFO,
-			    "SetProperty on %u called but device is disabled.\n"
+			    "SetProperty on %lu called but device is disabled.\n"
 			    "This driver cannot change properties on a disabled device\n",
 			    atom);
 		return FALSE;
