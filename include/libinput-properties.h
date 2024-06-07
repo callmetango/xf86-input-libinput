@@ -222,6 +222,15 @@
  */
 #define LIBINPUT_PROP_TABLET_TOOL_PRESSURECURVE "libinput Tablet Tool Pressurecurve"
 
+/* Tablet tool pressure range: float, 2 values, 32 bit
+ * Value range is [0.0, 1.0] for min and max physical pressure to map to the logical range
+ * Default value: 0.0 1.0
+ */
+#define LIBINPUT_PROP_TABLET_TOOL_PRESSURE_RANGE "libinput Tablet Tool Pressure Range"
+
+/* Tablet tool pressure range: float, 2 values, 32 bit, read-only */
+#define LIBINPUT_PROP_TABLET_TOOL_PRESSURE_RANGE_DEFAULT "libinput Tablet Tool Pressure Range Default"
+
 /* Tablet tool area ratio: CARD32, 2 values, w and h */
 #define LIBINPUT_PROP_TABLET_TOOL_AREA_RATIO "libinput Tablet Tool Area Ratio"
 

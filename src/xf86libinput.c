@@ -192,6 +192,9 @@ struct xf86libinput {
 
 		float rotation_angle;
 		struct bezier_control_point pressurecurve[4];
+		struct range {
+			float min, max;
+		} pressure_range;
 		struct ratio {
 			int x, y;
 		} area;
@@ -453,6 +456,25 @@ xf86libinput_set_pressurecurve(struct xf86libinput *driver_data,
 	return cubic_bezier(controls,
 			    driver_data->pressurecurve.values,
 			    driver_data->pressurecurve.sz);
+}
+
+static inline bool
+xf86libinput_set_pressure_range(struct xf86libinput *driver_data,
+				const struct range *range)
+{
+#if HAVE_LIBINPUT_PRESSURE_RANGE
+	struct libinput_tablet_tool *tool = driver_data->tablet_tool;
+
+	if (!tool)
+		return FALSE;
+
+	return libinput_tablet_tool_config_pressure_range_is_available(tool) &&
+	       libinput_tablet_tool_config_pressure_range_set(tool,
+							      range->min,
+							      range->max) == LIBINPUT_CONFIG_STATUS_SUCCESS;
+#else
+	return FALSE;
+#endif
 }
 
 static inline void
@@ -879,6 +901,27 @@ LibinputApplyConfigRotation(DeviceIntPtr dev,
 			    driver_data->options.rotation_angle);
 }
 
+static void
+LibinputApplyConfigPressureRange(DeviceIntPtr dev,
+				 struct xf86libinput *driver_data,
+				 struct libinput_device *device)
+{
+#if HAVE_LIBINPUT_PRESSURE_RANGE
+	InputInfoPtr pInfo = dev->public.devicePrivate;
+	struct libinput_tablet_tool *tool = driver_data->tablet_tool;
+	struct range *range = &driver_data->options.pressure_range;
+
+	if (!subdevice_has_capabilities(dev, CAP_TABLET_TOOL))
+		return;
+
+	if (tool && libinput_tablet_tool_config_pressure_range_is_available(tool) &&
+	    libinput_tablet_tool_config_pressure_range_set(tool, range->min, range->max) != LIBINPUT_CONFIG_STATUS_SUCCESS)
+		xf86IDrvMsg(pInfo, X_ERROR,
+			    "Failed to set PressureRange to %.2f..%.2f\n",
+			    range->min, range->max);
+#endif
+}
+
 static inline void
 LibinputApplyConfig(DeviceIntPtr dev)
 {
@@ -897,6 +940,7 @@ LibinputApplyConfig(DeviceIntPtr dev)
 	LibinputApplyConfigMiddleEmulation(dev, driver_data, device);
 	LibinputApplyConfigDisableWhileTyping(dev, driver_data, device);
 	LibinputApplyConfigRotation(dev, driver_data, device);
+	LibinputApplyConfigPressureRange(dev, driver_data, device);
 }
 
 static int
@@ -3539,6 +3583,46 @@ out:
 	xf86libinput_set_pressurecurve(driver_data, controls);
 }
 
+static void
+xf86libinput_parse_pressure_range_option(InputInfoPtr pInfo,
+					 struct xf86libinput *driver_data,
+					 struct range *range)
+{
+#if HAVE_LIBINPUT_PRESSURE_RANGE
+	struct libinput_tablet_tool *tool = driver_data->tablet_tool;
+	float min, max;
+	char *str;
+	int rc;
+
+	range->min = 0.0;
+	range->max = 1.0;
+
+	if ((driver_data->capabilities & CAP_TABLET_TOOL) == 0)
+		return;
+
+	if (!tool || !libinput_tablet_tool_config_pressure_range_is_available(tool))
+		return;
+
+	str = xf86SetStrOption(pInfo->options,
+			       "TabletToolPressureRange",
+			       NULL);
+	if (!str)
+		return;
+
+	rc = sscanf(str, "%f %f", &min, &max);
+	if (rc != 2)
+		goto out;
+
+	if (min < 0.0 || max > 1.0 || min >= max)
+		goto out;
+
+	range->min = min;
+	range->max = max;
+out:
+	free(str);
+#endif
+}
+
 static inline bool
 want_area_handling(struct xf86libinput *driver_data)
 {
@@ -3629,6 +3713,7 @@ xf86libinput_parse_options(InputInfoPtr pInfo,
 	xf86libinput_parse_pressurecurve_option(pInfo,
 						driver_data,
 						options->pressurecurve);
+	xf86libinput_parse_pressure_range_option(pInfo, driver_data, &options->pressure_range);
 	xf86libinput_parse_tablet_area_option(pInfo,
 					      driver_data,
 					      &options->area);
@@ -4103,6 +4188,8 @@ static Atom prop_mode_groups_rings;
 static Atom prop_mode_groups_strips;
 static Atom prop_rotation_angle;
 static Atom prop_rotation_angle_default;
+static Atom prop_pressure_range;
+static Atom prop_pressure_range_default;
 
 /* driver properties */
 static Atom prop_draglock;
@@ -5111,6 +5198,42 @@ LibinputSetPropertyPressureCurve(DeviceIntPtr dev,
 }
 
 static inline int
+LibinputSetPropertyPressureRange(DeviceIntPtr dev,
+				 Atom atom,
+				 XIPropertyValuePtr val,
+				 BOOL checkonly)
+{
+	InputInfoPtr pInfo = dev->public.devicePrivate;
+	struct xf86libinput *driver_data = pInfo->private;
+	float *vals;
+	struct range range = { 0.0, 1.0 };
+
+	if (val->format != 32 || val->size != 2 || val->type != prop_float)
+		return BadMatch;
+
+	vals = val->data;
+	range.min = vals[0];
+	range.max = vals[1];
+
+	if (checkonly) {
+		if (range.min < 0.0 || range.max > 1.0 || range.min >= range.max)
+			return BadValue;
+
+		/* Disallow reducing the range to less than 20% of the range, mostly
+		 * to avoid footguns */
+		if (range.max - range.min < 0.2)
+			return BadValue;
+
+		if (!xf86libinput_check_device(dev, atom))
+			return BadMatch;
+	} else {
+		driver_data->options.pressure_range = range;
+	}
+
+	return Success;
+}
+
+static inline int
 LibinputSetPropertyAreaRatio(DeviceIntPtr dev,
 			     Atom atom,
 			     XIPropertyValuePtr val,
@@ -5261,6 +5384,8 @@ LibinputSetProperty(DeviceIntPtr dev, Atom atom, XIPropertyValuePtr val,
 		rc = LibinputSetPropertyRotationAngle(dev, atom, val, checkonly);
 	else if (atom == prop_pressurecurve)
 		rc = LibinputSetPropertyPressureCurve(dev, atom, val, checkonly);
+	else if (atom == prop_pressure_range)
+		rc = LibinputSetPropertyPressureRange(dev, atom, val, checkonly);
 	else if (atom == prop_area_ratio)
 		rc = LibinputSetPropertyAreaRatio(dev, atom, val, checkonly);
 	else if (atom == prop_hires_scroll)
@@ -5279,6 +5404,7 @@ LibinputSetProperty(DeviceIntPtr dev, Atom atom, XIPropertyValuePtr val,
 		 atom == prop_mode_groups_strips ||
 		 atom == prop_natural_scroll_default ||
 		 atom == prop_product_id ||
+		 atom == prop_pressure_range_default ||
 		 atom == prop_rotation_angle_default ||
 		 atom == prop_scroll_button_default ||
 		 atom == prop_scroll_buttonlock_default ||
@@ -6264,6 +6390,44 @@ LibinputInitPressureCurveProperty(DeviceIntPtr dev,
 }
 
 static void
+LibinputInitPressureRangeProperty(DeviceIntPtr dev,
+				  struct xf86libinput *driver_data)
+{
+#if HAVE_LIBINPUT_PRESSURE_RANGE
+	struct libinput_tablet_tool *tool = driver_data->tablet_tool;
+	const struct range *range = &driver_data->options.pressure_range;
+	float data[2] = {
+		range->min,
+		range->max,
+	};
+
+	if ((driver_data->capabilities & CAP_TABLET_TOOL) == 0)
+		return;
+
+
+	if (!tool || !libinput_tablet_tool_config_pressure_range_is_available(tool))
+		return;
+
+	prop_pressure_range = LibinputMakeProperty(dev,
+						   LIBINPUT_PROP_TABLET_TOOL_PRESSURE_RANGE,
+						   prop_float, 32,
+						   2, &data);
+	if (!prop_pressure_range)
+		return;
+
+	data[0] = libinput_tablet_tool_config_pressure_range_get_default_minimum(tool);
+	data[1] = libinput_tablet_tool_config_pressure_range_get_default_maximum(tool);
+	prop_pressure_range_default = LibinputMakeProperty(dev,
+							   LIBINPUT_PROP_TABLET_TOOL_PRESSURE_RANGE_DEFAULT,
+							   prop_float, 32,
+							   2, &data);
+
+	if (!prop_pressure_range_default)
+		return;
+#endif
+}
+
+static void
 LibinputInitTabletAreaRatioProperty(DeviceIntPtr dev,
 				    struct xf86libinput *driver_data)
 {
@@ -6386,6 +6550,7 @@ LibinputInitProperty(DeviceIntPtr dev)
 	LibinputInitHorizScrollProperty(dev, driver_data);
 	LibinputInitScrollPixelDistanceProperty(dev, driver_data, device);
 	LibinputInitPressureCurveProperty(dev, driver_data);
+	LibinputInitPressureRangeProperty(dev, driver_data);
 	LibinputInitTabletAreaRatioProperty(dev, driver_data);
 	LibinputInitTabletSerialProperty(dev, driver_data);
 	LibinputInitHighResolutionScrollProperty(dev, driver_data, device);

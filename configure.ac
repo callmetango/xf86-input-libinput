@@ -88,6 +88,17 @@ AC_LINK_IFELSE(
                 [libinput_have_custom_accel=yes]],
                [AC_MSG_RESULT([no])
                 [libinput_have_custom_accel=no]])
+AC_MSG_CHECKING([if libinput_tablet_tool_config_pressure_range_set is available])
+AC_LINK_IFELSE(
+               [AC_LANG_PROGRAM([[#include <libinput.h>]],
+                                [[libinput_tablet_tool_config_pressure_range_set(0)]])],
+               [AC_MSG_RESULT([yes])
+                AC_DEFINE(HAVE_LIBINPUT_PRESURE_RANGE, [1],
+                          [libinput_tablet_tool_config_pressure_range_set() is available])
+                [libinput_have_pressure_range=yes]],
+               [AC_MSG_RESULT([no])
+                [libinput_have_pressure_range=no]])
+
 
 LIBS=$OLD_LIBS
 CFLAGS=$OLD_CFLAGS
