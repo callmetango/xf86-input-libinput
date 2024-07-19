@@ -51,6 +51,13 @@
 /* Tap button default order: BOOL, 2 values in order LRM, LMR, read-only */
 #define LIBINPUT_PROP_TAP_BUTTONMAP_DEFAULT "libinput Tapping Button Mapping Default"
 
+/* Clickfinger button order: BOOL, 2 values in order LRM, LMR, only one may be set
+   at any time */
+#define LIBINPUT_PROP_CLICKFINGER_BUTTONMAP "libinput Clickfinger Button Mapping Enabled"
+
+/* Clickfinger button default order: BOOL, 2 values in order LRM, LMR, read-only */
+#define LIBINPUT_PROP_CLICKFINGER_BUTTONMAP_DEFAULT "libinput Clickfinger Button Mapping Default"
+
 /* Calibration matrix: FLOAT, 9 values of a 3x3 matrix, in rows */
 #define LIBINPUT_PROP_CALIBRATION "libinput Calibration Matrix"
 

@@ -88,6 +88,7 @@ AC_LINK_IFELSE(
                 [libinput_have_custom_accel=yes]],
                [AC_MSG_RESULT([no])
                 [libinput_have_custom_accel=no]])
+
 AC_MSG_CHECKING([if libinput_tablet_tool_config_pressure_range_set is available])
 AC_LINK_IFELSE(
                [AC_LANG_PROGRAM([[#include <libinput.h>]],
@@ -99,6 +100,16 @@ AC_LINK_IFELSE(
                [AC_MSG_RESULT([no])
                 [libinput_have_pressure_range=no]])
 
+AC_MSG_CHECKING([if libinput_device_config_click_set_clickfinger_button_map is available])
+AC_LINK_IFELSE(
+               [AC_LANG_PROGRAM([[#include <libinput.h>]],
+                                [[libinput_device_config_click_set_clickfinger_button_map(NULL, 0)]])],
+               [AC_MSG_RESULT([yes])
+                AC_DEFINE(HAVE_LIBINPUT_CLICKFINGER_BUTTON_MAP, [1],
+                          [libinput_device_config_click_set_clickfinger_button_map() is available])
+                [libinput_have_clickfinger_button_map=yes]],
+               [AC_MSG_RESULT([no])
+                [libinput_have_clickfinger_button_map=no]])
 
 LIBS=$OLD_LIBS
 CFLAGS=$OLD_CFLAGS

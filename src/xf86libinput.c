@@ -179,6 +179,9 @@ struct xf86libinput {
 		float matrix[9];
 		enum libinput_config_scroll_method scroll_method;
 		enum libinput_config_click_method click_method;
+#if HAVE_LIBINPUT_CLICKFINGER_BUTTON_MAP
+		enum libinput_config_clickfinger_button_map clickfinger_button_map;
+#endif
 		enum libinput_config_accel_profile accel_profile;
 #if HAVE_LIBINPUT_CUSTOM_ACCEL
 		struct accel_points accel_points_fallback;
@@ -826,6 +829,7 @@ LibinputApplyConfigClickMethod(DeviceIntPtr dev,
 			       struct libinput_device *device)
 {
 	InputInfoPtr pInfo = dev->public.devicePrivate;
+	uint32_t click_methods = libinput_device_config_click_get_methods(device);
 
 	if (!subdevice_has_capabilities(dev, CAP_POINTER))
 		return;
@@ -846,6 +850,24 @@ LibinputApplyConfigClickMethod(DeviceIntPtr dev,
 			    "Failed to set click method to %s\n",
 			    method);
 	}
+
+#if HAVE_LIBINPUT_CLICKFINGER_BUTTON_MAP
+	if (click_methods & LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER &&
+	    libinput_device_config_click_set_clickfinger_button_map(device,
+								    driver_data->options.clickfinger_button_map) != LIBINPUT_CONFIG_STATUS_SUCCESS) {
+		const char *map;
+
+		switch (driver_data->options.clickfinger_button_map) {
+		case LIBINPUT_CONFIG_CLICKFINGER_MAP_LRM: map = "LRM"; break;
+		case LIBINPUT_CONFIG_CLICKFINGER_MAP_LMR: map = "LMR"; break;
+		default:
+			map = "unknown"; break;
+		}
+		xf86IDrvMsg(pInfo, X_ERROR,
+			    "Failed to set clickfinger button map to %s\n",
+			    map);
+	}
+#endif
 }
 
 static void
@@ -2935,6 +2957,46 @@ xf86libinput_parse_tap_buttonmap_option(InputInfoPtr pInfo,
 	return map;
 }
 
+#if HAVE_LIBINPUT_CLICKFINGER_BUTTON_MAP
+static inline enum libinput_config_clickfinger_button_map
+xf86libinput_parse_clickfinger_map_option(InputInfoPtr pInfo,
+					  struct libinput_device *device)
+{
+	uint32_t click_methods = libinput_device_config_click_get_methods(device);
+	enum libinput_config_clickfinger_button_map map;
+	char *str;
+
+	map = libinput_device_config_click_get_clickfinger_button_map(device);
+	if ((click_methods & LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER) == 0)
+		return map;
+
+	str = xf86SetStrOption(pInfo->options,
+			       "ClickfingerButtonMap",
+			       NULL);
+	if (str) {
+		if (streq(str, "lmr"))
+			map = LIBINPUT_CONFIG_CLICKFINGER_MAP_LMR;
+		else if (streq(str, "lrm"))
+			map = LIBINPUT_CONFIG_CLICKFINGER_MAP_LRM;
+		else
+			xf86IDrvMsg(pInfo, X_ERROR,
+				    "Invalid ClickfingerButtonMap: %s\n",
+				    str);
+		free(str);
+	}
+
+	if (libinput_device_config_click_set_clickfinger_button_map(device, map) !=
+	    LIBINPUT_CONFIG_STATUS_SUCCESS) {
+		xf86IDrvMsg(pInfo, X_ERROR,
+			    "Failed to set Clickfinger Button Map to %d\n",
+			    map);
+		map = libinput_device_config_click_get_clickfinger_button_map(device);
+	}
+
+	return map;
+}
+#endif
+
 static inline double
 xf86libinput_parse_accel_option(InputInfoPtr pInfo,
 				struct libinput_device *device)
@@ -3695,6 +3757,9 @@ xf86libinput_parse_options(InputInfoPtr pInfo,
 	options->scroll_buttonlock = xf86libinput_parse_scrollbuttonlock_option(pInfo, device);
 	options->scroll_pixel_distance = xf86libinput_parse_scroll_pixel_distance_option(pInfo, device);
 	options->click_method = xf86libinput_parse_clickmethod_option(pInfo, device);
+#if HAVE_LIBINPUT_CLICKFINGER_BUTTON_MAP
+	options->clickfinger_button_map = xf86libinput_parse_clickfinger_map_option(pInfo, device);
+#endif
 	options->middle_emulation = xf86libinput_parse_middleemulation_option(pInfo, device);
 	options->disable_while_typing = xf86libinput_parse_disablewhiletyping_option(pInfo, device);
 	options->rotation_angle = xf86libinput_parse_rotation_angle_option(pInfo, device);
@@ -4177,6 +4242,8 @@ static Atom prop_scroll_pixel_distance_default;
 static Atom prop_click_methods_available;
 static Atom prop_click_method_enabled;
 static Atom prop_click_method_default;
+static Atom prop_clickfinger_buttonmap;
+static Atom prop_clickfinger_buttonmap_default;
 static Atom prop_middle_emulation;
 static Atom prop_middle_emulation_default;
 static Atom prop_disable_while_typing;
@@ -4924,6 +4991,46 @@ LibinputSetPropertyClickMethod(DeviceIntPtr dev,
 }
 
 static inline int
+LibinputSetPropertyClickfingerButtonmap(DeviceIntPtr dev,
+					Atom atom,
+					XIPropertyValuePtr val,
+					BOOL checkonly)
+{
+#if HAVE_LIBINPUT_CLICKFINGER_BUTTON_MAP
+	InputInfoPtr pInfo = dev->public.devicePrivate;
+	struct xf86libinput *driver_data = pInfo->private;
+	BOOL* data;
+	enum libinput_config_clickfinger_button_map map;
+
+	if (val->format != 8 || val->size != 2 || val->type != XA_INTEGER)
+		return BadMatch;
+
+	data = (BOOL*)val->data;
+
+	if (checkonly) {
+	    if ((data[0] && data[1]) || (!data[0] && !data[1]))
+		return BadValue;
+
+	    if (!xf86libinput_check_device(dev, atom))
+		return BadMatch;
+	}
+
+	if (data[0])
+		map = LIBINPUT_CONFIG_CLICKFINGER_MAP_LRM;
+	else if (data[1])
+		map = LIBINPUT_CONFIG_CLICKFINGER_MAP_LMR;
+	else
+		return BadValue;
+
+	if (!checkonly)
+		driver_data->options.clickfinger_button_map = map;
+
+#endif
+	return Success;
+}
+
+
+static inline int
 LibinputSetPropertyMiddleEmulation(DeviceIntPtr dev,
 				   Atom atom,
 				   XIPropertyValuePtr val,
@@ -5361,6 +5468,8 @@ LibinputSetProperty(DeviceIntPtr dev, Atom atom, XIPropertyValuePtr val,
 		rc = LibinputSetPropertyScrollButtonLock(dev, atom, val, checkonly);
 	else if (atom == prop_click_method_enabled)
 		rc = LibinputSetPropertyClickMethod(dev, atom, val, checkonly);
+	else if (atom == prop_clickfinger_buttonmap)
+		rc = LibinputSetPropertyClickfingerButtonmap(dev, atom, val, checkonly);
 	else if (atom == prop_middle_emulation)
 		rc = LibinputSetPropertyMiddleEmulation(dev, atom, val, checkonly);
 	else if (atom == prop_disable_while_typing)
@@ -5395,6 +5504,7 @@ LibinputSetProperty(DeviceIntPtr dev, Atom atom, XIPropertyValuePtr val,
 		 atom == prop_calibration_default ||
 		 atom == prop_click_method_default ||
 		 atom == prop_click_methods_available ||
+		 atom == prop_clickfinger_buttonmap_default ||
 		 atom == prop_disable_while_typing_default ||
 		 atom == prop_left_handed_default ||
 		 atom == prop_middle_emulation_default ||
@@ -6097,6 +6207,63 @@ LibinputInitClickMethodsProperty(DeviceIntPtr dev,
 }
 
 static void
+LibinputInitClickfingerButtonmapProperty(DeviceIntPtr dev,
+				 	 struct xf86libinput *driver_data,
+				 	 struct libinput_device *device)
+{
+#if HAVE_LIBINPUT_CLICKFINGER_BUTTON_MAP
+	enum libinput_config_clickfinger_button_map map;
+	BOOL data[2] = {0};
+
+	if (!subdevice_has_capabilities(dev, CAP_POINTER))
+		return;
+
+	uint32_t click_methods = libinput_device_config_click_get_methods(device);
+	if ((click_methods & LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER) == 0)
+		return;
+
+	map = driver_data->options.clickfinger_button_map;
+
+	switch (map) {
+	case LIBINPUT_CONFIG_CLICKFINGER_MAP_LRM:
+		data[0] = 1;
+		break;
+	case LIBINPUT_CONFIG_CLICKFINGER_MAP_LMR:
+		data[1] = 1;
+		break;
+	default:
+		break;
+	}
+
+	prop_clickfinger_buttonmap = LibinputMakeProperty(dev,
+							  LIBINPUT_PROP_CLICKFINGER_BUTTONMAP,
+							  XA_INTEGER, 8,
+							  2, data);
+	if (!prop_clickfinger_buttonmap)
+		return;
+
+	map = libinput_device_config_click_get_default_clickfinger_button_map(device);
+	memset(data, 0, sizeof(data));
+
+	switch (map) {
+	case LIBINPUT_CONFIG_CLICKFINGER_MAP_LRM:
+		data[0] = 1;
+		break;
+	case LIBINPUT_CONFIG_CLICKFINGER_MAP_LMR:
+		data[1] = 1;
+		break;
+	default:
+		break;
+	}
+
+	prop_clickfinger_buttonmap_default = LibinputMakeProperty(dev,
+								  LIBINPUT_PROP_CLICKFINGER_BUTTONMAP_DEFAULT,
+								  XA_INTEGER, 8,
+								  2, data);
+#endif
+}
+
+static void
 LibinputInitMiddleEmulationProperty(DeviceIntPtr dev,
 				    struct xf86libinput *driver_data,
 				    struct libinput_device *device)
@@ -6512,6 +6679,7 @@ LibinputInitProperty(DeviceIntPtr dev)
 	LibinputInitDisableWhileTypingProperty(dev, driver_data, device);
 	LibinputInitScrollMethodsProperty(dev, driver_data, device);
 	LibinputInitClickMethodsProperty(dev, driver_data, device);
+	LibinputInitClickfingerButtonmapProperty(dev, driver_data, device);
 	LibinputInitMiddleEmulationProperty(dev, driver_data, device);
 	LibinputInitRotationAngleProperty(dev, driver_data, device);
 	LibinputInitAccelProperty(dev, driver_data, device);

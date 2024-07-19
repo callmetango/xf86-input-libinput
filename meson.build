@@ -61,6 +61,10 @@ if cc.has_function('libinput_tablet_tool_config_pressure_range_set',
 		   dependencies: dep_libinput)
 	config_h.set('HAVE_LIBINPUT_PRESSURE_RANGE', 1)
 endif
+if cc.has_function('libinput_device_config_click_set_clickfinger_button_map',
+		   dependencies: dep_libinput)
+	config_h.set('HAVE_LIBINPUT_CLICKFINGER_BUTTON_MAP', 1)
+endif
 
 dir_headers = get_option('sdkdir')
 if dir_headers == ''
