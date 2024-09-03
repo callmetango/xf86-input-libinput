@@ -1170,14 +1170,19 @@ xf86libinput_init_pointer_absolute(InputInfoPtr pInfo)
 static void
 xf86libinput_kbd_ctrl(DeviceIntPtr device, KeybdCtrl *ctrl)
 {
-#define CAPSFLAG	1
-#define NUMFLAG		2
-#define SCROLLFLAG	4
-
+#define CAPSFLAG    1
+#define NUMFLAG     2
+#define SCROLLFLAG  4
+#define COMPOSEFLAG 8
+#define KANAFLAG    16
 	static struct { int xbit, code; } bits[] = {
 		{ CAPSFLAG,	LIBINPUT_LED_CAPS_LOCK },
 		{ NUMFLAG,	LIBINPUT_LED_NUM_LOCK },
 		{ SCROLLFLAG,	LIBINPUT_LED_SCROLL_LOCK },
+#ifdef HAVE_LIBINPUT_COMPOSE_AND_KANA
+		{ COMPOSEFLAG,	LIBINPUT_LED_COMPOSE },
+		{ KANAFLAG,	LIBINPUT_LED_KANA },
+#endif
 		{ 0, 0 },
 	};
 	int i = 0;
