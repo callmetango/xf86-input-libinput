@@ -526,8 +526,10 @@ subdevice_has_capabilities(DeviceIntPtr dev, uint32_t capabilities)
 }
 
 static int
-LibinputSetProperty(DeviceIntPtr dev, Atom atom, XIPropertyValuePtr val,
-                 BOOL checkonly);
+LibinputSetProperty(DeviceIntPtr dev, Atom atom,
+		    XIPropertyValuePtr val,
+		    BOOL checkonly);
+
 static void
 LibinputInitProperty(DeviceIntPtr dev);
 
@@ -1164,6 +1166,7 @@ xf86libinput_init_pointer_absolute(InputInfoPtr pInfo)
 
 	return Success;
 }
+
 static void
 xf86libinput_kbd_ctrl(DeviceIntPtr device, KeybdCtrl *ctrl)
 {
@@ -1171,28 +1174,28 @@ xf86libinput_kbd_ctrl(DeviceIntPtr device, KeybdCtrl *ctrl)
 #define NUMFLAG		2
 #define SCROLLFLAG	4
 
-    static struct { int xbit, code; } bits[] = {
-        { CAPSFLAG,	LIBINPUT_LED_CAPS_LOCK },
-        { NUMFLAG,	LIBINPUT_LED_NUM_LOCK },
-        { SCROLLFLAG,	LIBINPUT_LED_SCROLL_LOCK },
-	{ 0, 0 },
-    };
-    int i = 0;
-    enum libinput_led leds = 0;
-    InputInfoPtr pInfo = device->public.devicePrivate;
-    struct xf86libinput *driver_data = pInfo->private;
-    struct libinput_device *ldevice = driver_data->shared_device->device;
+	static struct { int xbit, code; } bits[] = {
+		{ CAPSFLAG,	LIBINPUT_LED_CAPS_LOCK },
+		{ NUMFLAG,	LIBINPUT_LED_NUM_LOCK },
+		{ SCROLLFLAG,	LIBINPUT_LED_SCROLL_LOCK },
+		{ 0, 0 },
+	};
+	int i = 0;
+	enum libinput_led leds = 0;
+	InputInfoPtr pInfo = device->public.devicePrivate;
+	struct xf86libinput *driver_data = pInfo->private;
+	struct libinput_device *ldevice = driver_data->shared_device->device;
 
-    if (!device->enabled)
-	    return;
+	if (!device->enabled)
+		return;
 
-    while (bits[i].xbit) {
-	    if (ctrl->leds & bits[i].xbit)
-		    leds |= bits[i].code;
-	    i++;
-    }
+	while (bits[i].xbit) {
+		if (ctrl->leds & bits[i].xbit)
+			leds |= bits[i].code;
+		i++;
+	}
 
-    libinput_device_led_update(ldevice, leds);
+	libinput_device_led_update(ldevice, leds);
 }
 
 static void
@@ -2729,7 +2732,7 @@ xf86libinput_read_input(InputInfoPtr pInfo)
 	int rc;
 	struct libinput_event *event;
 
-        rc = libinput_dispatch(libinput);
+	rc = libinput_dispatch(libinput);
 	if (rc == -EAGAIN)
 		return;
 
@@ -4389,9 +4392,9 @@ xf86libinput_check_device(DeviceIntPtr dev,
 
 static inline int
 LibinputSetPropertyTap(DeviceIntPtr dev,
-                       Atom atom,
-                       XIPropertyValuePtr val,
-                       BOOL checkonly)
+		       Atom atom,
+		       XIPropertyValuePtr val,
+		       BOOL checkonly)
 {
 	InputInfoPtr pInfo = dev->public.devicePrivate;
 	struct xf86libinput *driver_data = pInfo->private;
@@ -4519,8 +4522,8 @@ LibinputSetPropertyTapButtonmap(DeviceIntPtr dev,
 
 static inline int
 LibinputSetPropertyCalibration(DeviceIntPtr dev,
-                               Atom atom,
-                               XIPropertyValuePtr val,
+			       Atom atom,
+			       XIPropertyValuePtr val,
 			       BOOL checkonly)
 {
 	InputInfoPtr pInfo = dev->public.devicePrivate;
@@ -4722,9 +4725,9 @@ LibinputSetPropertyAccelStep(DeviceIntPtr dev,
 
 static inline int
 LibinputSetPropertyNaturalScroll(DeviceIntPtr dev,
-                                 Atom atom,
-                                 XIPropertyValuePtr val,
-                                 BOOL checkonly)
+				 Atom atom,
+				 XIPropertyValuePtr val,
+				 BOOL checkonly)
 {
 	InputInfoPtr pInfo = dev->public.devicePrivate;
 	struct xf86libinput *driver_data = pInfo->private;
@@ -5424,8 +5427,9 @@ LibinputSetPropertyHighResolutionScroll(DeviceIntPtr dev,
 }
 
 static int
-LibinputSetProperty(DeviceIntPtr dev, Atom atom, XIPropertyValuePtr val,
-                 BOOL checkonly)
+LibinputSetProperty(DeviceIntPtr dev, Atom atom,
+		    XIPropertyValuePtr val,
+		    BOOL checkonly)
 {
 	int rc;
 
