@@ -4678,6 +4678,8 @@ LibinputSetPropertyAccelPoints(DeviceIntPtr dev,
 			accel_points = &driver_data->options.accel_points_motion;
 		else if (atom == prop_accel_points_scroll)
 			accel_points = &driver_data->options.accel_points_scroll;
+		else
+			return BadValue;
 
 		for (size_t idx = 0; idx < val->size; idx++)
 			accel_points->points[idx] = data[idx];
