@@ -5132,6 +5132,7 @@ prop_draglock_set_pairs(struct xf86libinput *driver_data,
 	int data[MAX_BUTTONS + 1] = {0};
 	int i;
 	int highest = 0;
+	const unsigned int max = MAX_BUTTONS;
 
 	if (len >= ARRAY_SIZE(data))
 		return BadMatch;
@@ -5142,7 +5143,7 @@ prop_draglock_set_pairs(struct xf86libinput *driver_data,
 	dl = (checkonly) ? &dummy : &driver_data->draglock;
 
 	for (i = 0; i < len; i += 2) {
-		if (pairs[i] > MAX_BUTTONS)
+		if (pairs[i] > max)
 			return BadValue;
 
 		data[pairs[i]] = pairs[i+1];
