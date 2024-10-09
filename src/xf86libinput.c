@@ -1729,6 +1729,14 @@ xf86libinput_handle_key(InputInfoPtr pInfo, struct libinput_event_keyboard *even
 	if ((driver_data->capabilities & CAP_KEYBOARD) == 0)
 		return;
 
+	/* keycodes > 256 that have a historical mapping in xkeyboard-config */
+	switch (key) {
+	case KEY_TOUCHPAD_TOGGLE: key = KEY_F21; break;
+	case KEY_TOUCHPAD_ON:     key = KEY_F22; break;
+	case KEY_TOUCHPAD_OFF:    key = KEY_F23; break;
+	case KEY_MICMUTE:         key = KEY_F20; break;
+	}
+
 	key += XORG_KEYCODE_OFFSET;
 
 	is_press = (libinput_event_keyboard_get_key_state(event) == LIBINPUT_KEY_STATE_PRESSED);
