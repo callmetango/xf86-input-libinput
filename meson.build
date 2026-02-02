@@ -1,5 +1,5 @@
 project('xf86-input-libinput', 'c',
-        version: '25.0.0',
+        version: '25.0.1',
         default_options: ['warning_level=2'],
         meson_version: '>= 0.50.0')
 
